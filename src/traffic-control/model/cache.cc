@@ -356,7 +356,7 @@ bool Cache::DoEnqueue(uint32_t discId, Ptr<QueueItem> item)
     FlowCacheI itr = m_fifoFlows.find(discId);
     if (itr == m_fifoFlows.end())
     {
-      std::queue<Ptr<QueueItem>> que;
+      std::queue<Ptr<QueueItem> > que;
       m_fifoFlows[discId] = que;
     }
     m_fifoFlows[discId].push(item);

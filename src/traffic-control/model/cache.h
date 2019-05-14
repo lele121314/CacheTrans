@@ -53,8 +53,8 @@ public:
   Cache();
   ~Cache();
 
-  typedef std::map<uint32_t, std::queue<Ptr<QueueItem>>> FlowCache;
-  typedef std::map<uint32_t, std::queue<Ptr<QueueItem>>>::iterator FlowCacheI;
+  typedef std::map<uint32_t, std::queue<Ptr<QueueItem> > > FlowCache;
+  typedef std::map<uint32_t, std::queue<Ptr<QueueItem> > >::iterator FlowCacheI;
   typedef std::map<uint32_t, FlowCache> DiscCache;
   typedef std::map<uint32_t, FlowCache>::iterator DiscCacheI;
   typedef std::vector<uint32_t>::iterator VecI;

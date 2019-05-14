@@ -1074,11 +1074,11 @@ protected:
 
   // The following two traces pass a packet with a TCP header
   TracedCallback<Ptr<const Packet>, const TcpHeader &,
-                 Ptr<const TcpSocketBase>>
+                 Ptr<const TcpSocketBase> >
       m_txTrace; //!< Trace of transmitted packets
 
   TracedCallback<Ptr<const Packet>, const TcpHeader &,
-                 Ptr<const TcpSocketBase>>
+                 Ptr<const TcpSocketBase> >
       m_rxTrace; //!< Trace of received packets
 };
 

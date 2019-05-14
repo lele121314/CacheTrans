@@ -5,7 +5,7 @@ all:
 
 # free free to change this part to suit your requirements
 configure:
-	./waf configure --enable-examples --enable-tests
+	CXXFLAGS='-std=c++11' ./waf configure --enable-examples --enable-tests
 
 build:
 	./waf build
