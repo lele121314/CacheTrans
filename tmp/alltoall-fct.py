@@ -28,7 +28,7 @@ def parse_time_ns(tm):
 
 BOTTLENECK_RATE = 10e9 # 10Gbps
 PERCENTILE_CUTOFF = 99
-INCAST_FLOW_SIZE = 8e3
+INCAST_FLOW_SIZE = 8e1
 INCAST_SENDERS = 128
 N_BINS = 8 
 
@@ -144,7 +144,7 @@ class Flow(object):
         processing_delay = 250e-9   # delay for a packet to be processed by the switch software
 	optimal_flow_duration = float(2.0*flowsize_bits/edge_capacity) + float(2.0*flowsize_bits/agg_capacity)
         log_base = 10
-        slowdown_raw = actual_duration / optimal_flow_duration
+        slowdown_raw = 0
 
         self.slowdown = slowdown_raw
         self.rawDuration = actual_duration
@@ -294,8 +294,8 @@ def main(argv):
 
     # DO NOT INCLUDE ACKs
         for flow in sim.flows:
-            if flow.fiveTuple.sourcePort != 9:
-                flows_of_interest.append( flow )
+            # if flow.fiveTuple.sourcePort != 9:
+            flows_of_interest.append( flow )
 
         # Get FCTs for this incast scenario
         fcts = []
