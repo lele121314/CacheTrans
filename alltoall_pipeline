@@ -1,0 +1,155 @@
+#!/bin/bash
+
+#---------- begin user configurations -------------------------
+
+
+# number of processors on this machine
+processors=13
+
+# number of flows per incast degree
+flows=10
+
+# number of incast senders
+senders=(2 16 32 64 128 256)
+
+# size of each incast flow
+flowsize=(8000 45000)
+
+enableDcTcp=(true false)
+
+sudo rm *.log
+sudo rm *.png
+sudo rm tmp/*
+
+
+#----------- end user configurations --------------------------
+
+
+
+
+# script deploy location
+repo=$(pwd -P)
+
+# script start-time
+start=`date +%s`
+
+# function to wait for a bunch of jobs to finish
+synchronization_barrier () {
+	arr=("$@")
+	for pid in "${arr[@]}"; do
+		wait "$pid"
+	done
+}
+
+# date as UID for gcloud buckets
+date=`date +"%m_%d_%Y-%H-%M"`
+
+
+# initialize pid arrays for new jobs, and zero proccount
+sim_pids=()
+plot_pids=()
+proccount=0
+
+
+	
+# rebuild once before parallel deployments - avoids "compilation collision" between threads
+sudo ./waf build
+
+# Simulations With PBS
+for S in "${senders[@]}";
+do
+	for F in "${flowsize[@]}";
+	do
+		for T in "${enableDcTcp[@]}";
+		do
+			proccount=$(($proccount+1))
+			if [ $proccount == $processors ]; then
+				synchronization_barrier "${sim_pids[@]}"
+				sim_pids=()
+				proccount=1
+			fi
+			args="scratch/alltoall"
+			args+=" --alltoallServers=$S"
+			args+=" --appnumbers=$flows"
+			args+=" --flowSize=$F"
+			args+=" --enableDcTcp=$T"
+			echo "Running Sim with args: $args"
+			# echo "sudo ./waf --run "$args" &> $repo/logs/incast/sim_a"$A"_s"$S".log & sim_pids+=("$!")"
+			sudo ./waf --run "$args" &> sim_sender"$S"_Flowsize"$F"_"$T".log & sim_pids+=("$!")
+		done
+	done
+done
+
+# if [ "$run_simulation_compare" = true ]; then
+# # Simulations Without PBS
+
+# 	for S in $(seq 1 "$senders");
+# 	do
+# 		proccount=$(($proccount+1))
+# 		if [ $proccount == $processors ]; then
+# 			synchronization_barrier "${sim_pids[@]}"
+# 			sim_pids=()
+# 			proccount=1
+# 		fi
+# 		args="scratch/incasttopo"
+# 		args+=" --apps=$flows"
+# 		args+=" --buff=$buff"
+# 		args+=" --useAbq=false"
+# 		args+=" --thresh=$thresh"
+# 		args+=" --profile=6"
+# 		args+=" --tag=dctcp_s${S}"
+# 		args+=" --incast_servers=$S"
+# 		args+=" --incastFlowSize=$flowsize"
+# 		echo "Running Sim with args: $args"
+# 		sudo ./waf --run "$args" &> $repo/logs/incast/sim_dctcp_s"$S".log & sim_pids+=("$!")
+# 	done
+
+# 	#Simulations Without PBS without dctcp
+	
+# 	for S in $(seq 1 "$senders");
+# 	do
+# 		proccount=$(($proccount+1))
+# 		if [ $proccount == $processors ]; then
+# 			synchronization_barrier "${sim_pids[@]}"
+# 			sim_pids=()
+# 			proccount=1
+# 		fi
+# 		args="scratch/incasttopo"
+# 		args+=" --apps=$flows"
+# 		args+=" --buff=$buff"
+# 		args+=" --useAbq=true"
+# 		args+=" --useDctcp=false"
+# 		args+=" --thresh=$thresh"
+# 		args+=" --profile=6"
+# 		args+=" --tag=nodctcp_s${S}"
+# 		args+=" --incast_servers=$S"
+# 		args+=" --incastFlowSize=$flowsize"
+# 		echo "Running Sim with args: $args"
+# 		sudo ./waf --run "$args" &> $repo/logs/incast/sim_nodctcp_s"$S".log & sim_pids+=("$!")
+# 	done
+# fi
+
+# wait for simulations to complete
+echo "-I- incast_run_pipeline: simulations deployed..." > /dev/tty
+echo "-I- incast_run_pipeline: simulations deployed..."
+synchronization_barrier "${sim_pids[@]}"
+sim_finish=`date +%s`
+sim_runtime=$((sim_finish-start))
+echo "-I- incast_run_pipeline: simulations completed in $sim_runtime (s)." > /dev/tty
+echo "-I- incast_run_pipeline: simulations completed in $sim_runtime (s)."
+
+sudo mv *.xml tmp/
+sudo mv *.tr tmp/
+python scripts/alltoall-fct.py tmp/
+
+# print run stats
+finish=`date +%s`
+runtime=$((finish-start))
+echo "-I- incast_run_pipeline: finished in $runtime (s)." > /dev/tty
+echo "-I- incast_run_pipeline: finished in $runtime (s)."
+echo "-I- incast_run_pipeline: output logged to: ${logfile}" > /dev/tty
+echo "-I- incast_run_pipeline: output logged to: ${logfile}"
+
+# bring output back to the terminal, exit
+exec &>/dev/tty 
+exit
