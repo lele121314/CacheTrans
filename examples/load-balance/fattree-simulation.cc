@@ -100,11 +100,12 @@ void install_applications (uint32_t fromPodId, uint32_t serverCount, uint32_t k,
             sinkApp.Start (Seconds (startTime));
             sinkApp.Stop (Seconds (END_TIME));
 
-            //NS_LOG_INFO ("\tFlow from server: " << fromServerIndex << " to server: "
-                    //<< destServerIndex << " on port: " << port << " with flow size: "
-                    //<< flowSize << " [start time: " << startTime <<"]");
+            NS_LOG_INFO ("\tFlow from server: " << fromServerIndex << " to server: "
+                    << destServerIndex << " on port: " << port << " with flow size: "
+                    << flowSize << " [start time: " << startTime <<"]");
 
             startTime += poission_gen_interval (requestRate);
+
         }
     }
 }

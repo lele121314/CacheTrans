@@ -20,7 +20,7 @@ extern "C"
 }
 
 #define LINK_CAPACITY_BASE    1000000000         // 1Gbps
-#define LINK_DELAY  MicroSeconds(10)             // 10 MicroSeconds
+#define LINK_DELAY  MicroSeconds(1)             // 10 MicroSeconds
 #define BUFFER_SIZE 600                          // 600 packets
 #define PACKET_SIZE 1400
 
@@ -146,15 +146,15 @@ int main (int argc, char *argv[])
 
   
 
-    Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
-    Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (0));
-    Config::SetDefault ("ns3::TcpSocket::ConnTimeout", TimeValue (MilliSeconds (5)));
-    Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue (1));
-    Config::SetDefault ("ns3::TcpSocketBase::MinRto", TimeValue (MilliSeconds (5)));
-    Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue (MicroSeconds (100)));
-    Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue (MicroSeconds (80)));
-    Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (160000000));
-    Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (160000000));
+    // Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
+    // Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (0));
+    // Config::SetDefault ("ns3::TcpSocket::ConnTimeout", TimeValue (MilliSeconds (5)));
+    // Config::SetDefault ("ns3::TcpSocket::InitialCwnd", UintegerValue (10));
+    // Config::SetDefault ("ns3::TcpSocketBase::MinRto", TimeValue (MilliSeconds (5)));
+    // Config::SetDefault ("ns3::TcpSocketBase::ClockGranularity", TimeValue (MicroSeconds (100)));
+    // Config::SetDefault ("ns3::RttEstimator::InitialEstimation", TimeValue (MicroSeconds (80)));
+    // Config::SetDefault ("ns3::TcpSocket::SndBufSize", UintegerValue (160000000));
+    // Config::SetDefault ("ns3::TcpSocket::RcvBufSize", UintegerValue (160000000));
 
 
     Config::SetDefault ("ns3::RedQueueDisc::Mode", StringValue ("QUEUE_MODE_BYTES"));
@@ -172,6 +172,8 @@ int main (int argc, char *argv[])
         Config::SetDefault ("ns3::TcpResequenceBuffer::SizeLimit", UintegerValue (100));
         Config::SetDefault ("ns3::TcpResequenceBuffer::OutOrderQueueTimerLimit", TimeValue (MicroSeconds (250)));
     }
+
+    NetDeviceContainer networkLoadTracer;
 
 
     uint32_t edgeCount = 32;
@@ -244,6 +246,7 @@ int main (int argc, char *argv[])
 
             NodeContainer nodeContainer = NodeContainer (edges.Get (i), servers.Get (uServerIndex));
             NetDeviceContainer netDeviceContainer = p2p.Install (nodeContainer);
+            networkLoadTracer.Add( netDeviceContainer.Get(0) );
 
             if (dctcpEnabled)
             {
@@ -277,6 +280,7 @@ int main (int argc, char *argv[])
 
             NodeContainer nodeContainer = NodeContainer (edges.Get (i), aggregations.Get (uAggregationIndex));
             NetDeviceContainer netDeviceContainer = p2p.Install (nodeContainer);
+            networkLoadTracer.Add( netDeviceContainer.Get(0) );
 
             if (dctcpEnabled)
             {
@@ -319,9 +323,9 @@ int main (int argc, char *argv[])
 
     NS_LOG_INFO ("Install applications:");
 
-    uint32_t alltoall_servers = 64;
-    uint32_t appnumbers = 3;
-    uint32_t flowSize = 8000;
+    // uint32_t alltoall_servers = 64;
+    // uint32_t appnumbers = 3;
+    // uint32_t flowSize = 8000;
     double link_rate = serverEdgeCapacity;
     
     double requestRate = (link_rate*load)/(flowSize*8.0) / (alltoall_servers-1);
@@ -342,6 +346,7 @@ int main (int argc, char *argv[])
             for (uint32_t k = 0; k < appnumbers;k++ )
             {
                 uint32_t fromServerIndex = i;
+                // uint16_t port = 9;
                 uint16_t port = rand_range (PORT_START, PORT_END);
                 uint32_t destServerIndex = j;
 
@@ -388,21 +393,24 @@ int main (int argc, char *argv[])
     FlowMonitorHelper flowHelper;
     flowMonitor = flowHelper.InstallAll();
 
+    
+
     std::stringstream flowMonitorFilename;
 
-    flowMonitorFilename << id << "-fattree-" << load << "-"  << dctcpEnabled <<"-" << alltoall_servers <<"-";
+    flowMonitorFilename << id << "-fattree-" << load << "-"  << dctcpEnabled <<"-" << alltoall_servers <<"-"<<flowSize<<"-";
     if (runMode == ECMP)
     {
         flowMonitorFilename << "ecmp-simulation-";
     }
-    
+    AsciiTraceHelper ascii;
+	p2p.EnableAscii( ascii.CreateFileStream (flowMonitorFilename.str ()+ ".load.tr"), networkLoadTracer );
 
     flowMonitorFilename << randomSeed << ".xml";
 
     NS_LOG_INFO ("Start simulation");
     Simulator::Stop (Seconds (maxtime));
     Simulator::Run ();
-
+    flowMonitor->CheckForLostPackets ();
     flowMonitor->SerializeToXmlFile(flowMonitorFilename.str (), true, true);
 
     Simulator::Destroy ();

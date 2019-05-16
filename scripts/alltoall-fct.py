@@ -255,74 +255,72 @@ def main(argv):
     dctcp_sim_dict = {}
     nodctcp_sim_dict = {}
     pbs_sim_dict = {}
-    xmlfile = argv[1]
-    # for i, xmlfile in enumerate(os.listdir(path)): # send in entire incast directory
-    if xmlfile.split('.')[1] != 'xml':
-        print xmlfile.split('.')[1]
-    file_obj = open(xmlfile)
-    # names look like "tmp/incast/incast_a10_s128.xml"
-    raw_simname = xmlfile.split(".")[0].split("_")
-    sim_profile = raw_simname[0]
-    print sim_profile
-    # print sim_incasters
-    # print "_".join(raw_simname)
-    # print "Reading XML file \n",
+    path = argv[1]
+    for i, xmlfile in enumerate(os.listdir(path)): # send in entire incast directory
+        print xmlfile
+        if xmlfile.split('.')[1] == 'py':
+            continue
+        if xmlfile.split('.')[2] != 'xml':
+            continue
+        file_obj = open(os.path.join(path,xmlfile))
+        # names look like "tmp/incast/incast_a10_s128.xml"
+        raw_simname = xmlfile.split(".")[0].split("_")
+        sim_profile = raw_simname[0]
+        # print sim_profile
+        # print sim_incasters
+        # print "_".join(raw_simname)
+        # print "Reading XML file \n",
 
-    sys.stdout.flush()        
-    level = 0
-    for event, elem in ElementTree.iterparse(file_obj, events=("start", "end")):
-        if event == "start":
-            level += 1
-        if event == "end":
-            level -= 1
-            if level == 0 and elem.tag == 'FlowMonitor':
-                sim = Simulation(elem)
-                dctcp_sim_dict[0] = sim
-                elem.clear() # won't need this any more
-                # sys.stdout.write(".")
-                sys.stdout.flush()
-    # print " done."
+        sys.stdout.flush()        
+        level = 0
+        for event, elem in ElementTree.iterparse(file_obj, events=("start", "end")):
+            if event == "start":
+                level += 1
+            if event == "end":
+                level -= 1
+                if level == 0 and elem.tag == 'FlowMonitor':
+                    sim = Simulation(elem)
+                    dctcp_sim_dict[0] = sim
+                    elem.clear() # won't need this any more
+                    # sys.stdout.write(".")
+                    sys.stdout.flush()
+        # print " done."
 
-# FCT 99p Plot
-    fig, ax = plt.subplots()
+    # FCT 99p Plot
+        fig, ax = plt.subplots()
 
-    dctcp_data = []
-    dctcp_flows_completed = []
-    for i, sim in sorted(dctcp_sim_dict.items()):
-        flows_of_interest = []
-        flowsizes = []
+        dctcp_data = []
+        dctcp_flows_completed = []
+        for i, sim in sorted(dctcp_sim_dict.items()):
+            flows_of_interest = []
+            flowsizes = []
 
-    # DO NOT INCLUDE ACKs
-        for flow in sim.flows:
-            # if flow.fiveTuple.sourcePort != 9:
-            flows_of_interest.append( flow )
+        # DO NOT INCLUDE ACKs
+            for flow in sim.flows:
+                # if flow.fiveTuple.sourcePort != 9:
+                flows_of_interest.append( flow )
 
-        # Get FCTs for this incast scenario
-        fcts = []
-        dctcp_flows_completed.append(0)
-        for flow in flows_of_interest:
-            if flow.delayMean > 0:
-                fcts.append(float(flow.delayMean))
-                dctcp_flows_completed[-1] += 1 if flow.size >= INCAST_FLOW_SIZE else 0
-        dctcp_data.append( np.mean(fcts) )
-    print xmlfile
-    print np.max(fcts)
-    print dctcp_data
-    print "dctcp_data size: {}, dctcp flows completed in last run = {}, 99-fct of last run = {}".format(
-            len(dctcp_data), dctcp_flows_completed[-1], dctcp_data[-1])
-
-    plt.plot( fcts)
-    
-    outfilename = xmlfile+".png"
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(outfilename, dpi=600)
-    plt.clf()
-
+            # Get FCTs for this incast scenario
+            fcts = []
+            dctcp_flows_completed.append(0)
+            for flow in flows_of_interest:
+                if flow.delayMean > 0:
+                    fcts.append(float(flow.delayMean))
+                    dctcp_flows_completed[-1] += 1 if flow.size >= INCAST_FLOW_SIZE else 0
+            dctcp_data.append( np.mean(fcts) )
         
-  
-  
-   
+        print np.max(fcts) ,dctcp_data[-1]
+        # print dctcp_data
+        # print "dctcp_data size: {}, dctcp flows completed in last run = {}, 99-fct of last run = {}".format(
+                # len(dctcp_data), dctcp_flows_completed[-1], dctcp_data[-1])
+
+        plt.plot( fcts)
+        
+        outfilename = xmlfile+".png"
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(outfilename, dpi=600)
+        plt.clf()
 
 if __name__ == '__main__':
     main(sys.argv)
